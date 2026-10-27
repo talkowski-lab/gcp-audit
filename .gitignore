@@ -1,0 +1,27 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+dist/
+build/
+*.egg-info/
+uv.lock
+artifacts/
+scratch/
+.DS_Store
+.gcache/
+
+# Local tooling and private working files; never published.
+.pi/
+.gca-cache/
+reports/
+reviews/
+PLAN.md
+admin/
+
+# Written by `gca setup` and its script; they name your accounts and projects.
+gca-setup.sh
+grantable.txt

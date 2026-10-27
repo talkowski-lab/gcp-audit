@@ -1,0 +1,33 @@
+# Read-only lint, tests and style on every push. All offline: tests/conftest.py blocks the network
+# and the runner has no credential. `contents: read` is the minimum actions/checkout needs.
+name: gates
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install
+        run: python -m pip install --quiet -e ".[dev]"
+
+      - name: Read-only lint
+        run: python tools/lint_readonly.py
+
+      - name: Tests
+        run: python -m pytest -q -o addopts=""
+
+      - name: Style
+        run: ruff check src tests tools
+        continue-on-error: true        # style never blocks a merge; the lint above does
