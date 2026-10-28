@@ -99,7 +99,7 @@ old snapshots; large buckets whose `updated` date is old; projects with many `UN
 |---|---|---|
 | a project is missing from `projects covered` | the service account has no role there, so `--all` cannot see it | grant roles (`gca setup`, then `grant`), or check with the user |
 | `PERMISSION_DENIED ... Compute Engine API has not been used ... or it is disabled` | Compute Engine is off in that project | nothing to audit there; not an error to fix |
-| `bigquery.jobs.query ... does not have bigquery.jobs.create`, and that project's tables are `UNSIZED` | `--read-bq-storage` without `roles/bigquery.jobUser`; gca does not fall back to per-table reads | re-run that project without `--read-bq-storage`, or grant the role |
+| `bigquery.jobs.query ... does not have bigquery.jobs.create`, and that project's tables are `UNSIZED` | `--read-bq-storage` without `roles/bigquery.jobUser`; gca does not fall back to per-table reads | grant the role (`gca setup` grants it by default; regenerate the script and run `grant --apply`), or re-run that project without `--read-bq-storage` |
 | exit 2, "layer 1 refused" | the credential has a broad or wrong scope, e.g. a personal `gcloud` login | use the service account key; see `docs/SETUP.md` |
 | a project id is rejected and nothing is written | one malformed id stops the whole run | fix the id (lowercase, 6-30 characters) |
 | a project created minutes ago is missing from `--all` | project search is eventually consistent | name it with `--project` |

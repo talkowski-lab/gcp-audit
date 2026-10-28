@@ -18,7 +18,7 @@ PLAN = Plan(account=ACCOUNT, sa_name="gca-audit", home_project="lab-home-1")
 
 def args(**over) -> argparse.Namespace:
     base = dict(account=None, service_account=None, create=None, home_project=None,
-                bq_jobs=False, out=pathlib.Path("gca-setup.sh"), force=False)
+                out=pathlib.Path("gca-setup.sh"), force=False)
     base.update(over)
     return argparse.Namespace(**base)
 
@@ -48,18 +48,17 @@ def test_the_script_carries_the_plan_and_every_step():
     assert "--account=\"$ACCOUNT\"" in text
 
 
-def test_the_script_grants_the_documented_roles_and_job_user_only_when_asked():
-    plain = setup_script.render(PLAN)
-    roles_line = re.search(r"^ROLES=\((.*)\)$", plain, re.M).group(1).split()
+def test_the_script_grants_the_documented_roles_including_job_user():
+    """Without jobUser, --read-bq-storage leaves every table in the project UNSIZED."""
+    text = setup_script.render(PLAN)
+    roles_line = re.search(r"^ROLES=\((.*)\)$", text, re.M).group(1).split()
     assert tuple(roles_line) == setup_script.ROLES
-    assert setup_script.BQ_JOB_ROLE not in plain
-    with_jobs = setup_script.render(Plan(**{**PLAN.__dict__, "bq_jobs": True}))
-    assert setup_script.BQ_JOB_ROLE in re.search(r"^ROLES=\((.*)\)$", with_jobs, re.M).group(1)
+    assert setup_script.BQ_JOB_ROLE in roles_line
 
 
 def test_every_granted_role_is_documented_in_setup_md():
     doc = (pathlib.Path(__file__).resolve().parents[1] / "docs/SETUP.md").read_text("utf-8")
-    for role in setup_script.ROLES + (setup_script.BQ_JOB_ROLE,):
+    for role in setup_script.ROLES:
         assert f"`{role}`" in doc, f"{role} is granted by gca setup but not in docs/SETUP.md"
 
 
@@ -141,26 +140,23 @@ def test_without_a_terminal_a_missing_flag_is_an_error_not_a_prompt(tmp_path, ca
 def test_the_wizard_asks_for_an_existing_service_account(tmp_path):
     out = tmp_path / "s.sh"
     code = cli.cmd_setup(args(out=out), interactive=True,
-                         ask=answers(ACCOUNT, "y", SA, "n"))
+                         ask=answers(ACCOUNT, "y", SA))
     assert code == cli.EXIT_OK
-    text = out.read_text()
-    assert "HOME_PROJECT=lab-home-1" in text and setup_script.BQ_JOB_ROLE not in text
+    assert "HOME_PROJECT=lab-home-1" in out.read_text()
 
 
 def test_the_wizard_creates_a_new_service_account_with_the_default_name(tmp_path):
     out = tmp_path / "s.sh"
     code = cli.cmd_setup(args(out=out), interactive=True,
-                         ask=answers(ACCOUNT, "n", "lab-home-2", "", "y"))
+                         ask=answers(ACCOUNT, "n", "lab-home-2", ""))
     assert code == cli.EXIT_OK
-    text = out.read_text()
-    assert "SA_NAME=gca-audit\nHOME_PROJECT=lab-home-2\n" in text
-    assert setup_script.BQ_JOB_ROLE in text
+    assert "SA_NAME=gca-audit\nHOME_PROJECT=lab-home-2\n" in out.read_text()
 
 
 def test_the_wizard_asks_again_after_a_bad_answer(tmp_path, capsys):
     out = tmp_path / "s.sh"
     code = cli.cmd_setup(args(out=out), interactive=True,
-                         ask=answers("not-an-email", ACCOUNT, "y", SA, ""))
+                         ask=answers("not-an-email", ACCOUNT, "y", SA))
     assert code == cli.EXIT_OK
     assert "not an email address" in capsys.readouterr().err
 
@@ -179,5 +175,5 @@ def test_an_existing_script_is_replaced_only_on_a_yes(tmp_path):
 def test_setup_is_reachable_from_the_command_line(tmp_path):
     out = tmp_path / "s.sh"
     assert cli.main(["setup", "--account", ACCOUNT, "--create", "gca-audit",
-                     "--home-project", "lab-home-1", "--bq-jobs", "-o", str(out)]) == 0
+                     "--home-project", "lab-home-1", "-o", str(out)]) == 0
     assert setup_script.BQ_JOB_ROLE in out.read_text()

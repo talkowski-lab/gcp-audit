@@ -23,7 +23,7 @@ gca table --all -o reports/
 
 Every command in the script runs as the account you named (`gcloud --account=...`), so log in with
 `gcloud auth login <you>` first. Flags skip the prompts: `gca setup --account you@example.org
---service-account gca-audit@home-project.iam.gserviceaccount.com --bq-jobs`.
+--service-account gca-audit@home-project.iam.gserviceaccount.com`.
 
 `find` asks Google, for each active project you can see, whether you hold
 `resourcemanager.projects.setIamPolicy` there. Owner and Project IAM Admin have it; **Editor does
@@ -62,10 +62,10 @@ Grant roles on **each project**, never on a folder or the organization.
 | `roles/storage.viewer` | listing buckets |
 | `roles/monitoring.viewer` | the bucket size metric (`storage/total_bytes`) |
 | `roles/bigquery.metadataViewer` | datasets, tables, and the `TABLE_STORAGE` view |
-| `roles/bigquery.jobUser` | **only for `--read-bq-storage`**, because the `TABLE_STORAGE` query runs as a job billed to the project |
+| `roles/bigquery.jobUser` | `--read-bq-storage`, because the `TABLE_STORAGE` query runs as a job billed to the project. Without it, every table in the project is `UNSIZED`. It lets the account run any query job in the project, billed there; drop it from the script's `ROLES` if that is unwanted, and run that project without `--read-bq-storage`. |
 
 ```bash
-for ROLE in compute.viewer storage.viewer monitoring.viewer bigquery.metadataViewer; do
+for ROLE in compute.viewer storage.viewer monitoring.viewer bigquery.metadataViewer bigquery.jobUser; do
   gcloud projects add-iam-policy-binding <TARGET-PROJECT> \
     --member="serviceAccount:$SA" --role="roles/$ROLE"
 done

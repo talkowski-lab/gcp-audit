@@ -103,8 +103,6 @@ def _parser() -> argparse.ArgumentParser:
                               help="create a new service account with this name ...")
     setup_parser.add_argument("--home-project", metavar="ID",
                               help="... in this project")
-    setup_parser.add_argument("--bq-jobs", action="store_true",
-                              help="also grant roles/bigquery.jobUser, needed for --read-bq-storage")
     setup_parser.add_argument("-o", "--out", type=Path, default=setup_script.DEFAULT_SCRIPT,
                               metavar="FILE", help="where to write the script "
                                                    f"(default: {setup_script.DEFAULT_SCRIPT})")
@@ -366,9 +364,7 @@ def _setup_plan(args: argparse.Namespace, *, ask, interactive: bool) -> setup_sc
         home = need("--home-project", "Project to create it in: ", setup_script.check_project)
         name = need("--create", f"Name for it [{setup_script.DEFAULT_NAME}]: ",
                     setup_script.check_sa_name, setup_script.DEFAULT_NAME)
-    bq_jobs = args.bq_jobs or (interactive and _yes(ask(
-        "Also grant roles/bigquery.jobUser, needed only for --read-bq-storage? [y/N]: ")))
-    return setup_script.Plan(account=account, sa_name=name, home_project=home, bq_jobs=bq_jobs)
+    return setup_script.Plan(account=account, sa_name=name, home_project=home)
 
 
 def _yes(answer: str) -> bool:

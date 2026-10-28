@@ -17,11 +17,12 @@ from pathlib import Path
 
 from gcp_audit import model
 
+#: Needed for `--read-bq-storage`, because the TABLE_STORAGE query runs as a job. Granted by
+#: default: without it every table in the project is UNSIZED, with no per-table fallback.
+BQ_JOB_ROLE = "roles/bigquery.jobUser"
 #: The roles `gca table` needs in each audited project (`docs/SETUP.md` §2).
 ROLES = ("roles/compute.viewer", "roles/storage.viewer", "roles/monitoring.viewer",
-         "roles/bigquery.metadataViewer")
-#: Needed only for `--read-bq-storage`, because the TABLE_STORAGE query runs as a job.
-BQ_JOB_ROLE = "roles/bigquery.jobUser"
+         "roles/bigquery.metadataViewer", BQ_JOB_ROLE)
 #: APIs that must be enabled in the service account's home project. Calls to these are charged to
 #: the caller's own project, not the audited one, so a disabled API there fails every run.
 HOME_APIS = ("cloudresourcemanager.googleapis.com", "cloudbilling.googleapis.com",
@@ -45,15 +46,10 @@ class Plan:
     account: str            # the user's own login, which runs every gcloud command
     sa_name: str            # service account id, the part before `@`
     home_project: str       # the project the service account lives in
-    bq_jobs: bool = False
 
     @property
     def sa_email(self) -> str:
         return f"{self.sa_name}@{self.home_project}.iam.gserviceaccount.com"
-
-    @property
-    def roles(self) -> tuple[str, ...]:
-        return ROLES + ((BQ_JOB_ROLE,) if self.bq_jobs else ())
 
 
 def check_account(value: str) -> str:
@@ -96,7 +92,7 @@ def render(plan: Plan, *, today: _dt.date | None = None) -> str:
         "@@ACCOUNT@@": shlex.quote(check_account(plan.account)),
         "@@SA_NAME@@": shlex.quote(check_sa_name(plan.sa_name)),
         "@@HOME_PROJECT@@": shlex.quote(check_project(plan.home_project)),
-        "@@ROLES@@": " ".join(shlex.quote(r) for r in plan.roles),
+        "@@ROLES@@": " ".join(shlex.quote(r) for r in ROLES),
         "@@HOME_APIS@@": " ".join(shlex.quote(a) for a in HOME_APIS),
     }
     text = SCRIPT
